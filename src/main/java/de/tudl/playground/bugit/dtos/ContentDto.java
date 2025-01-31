@@ -1,4 +1,5 @@
 package de.tudl.playground.bugit.dtos;
 
-public class ContentDto {
+public record ContentDto(String content) {
+
 }

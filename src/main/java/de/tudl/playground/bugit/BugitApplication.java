@@ -9,5 +9,4 @@ public class BugitApplication {
     public static void main(String[] args) {
         SpringApplication.run(BugitApplication.class, args);
     }
-
 }
