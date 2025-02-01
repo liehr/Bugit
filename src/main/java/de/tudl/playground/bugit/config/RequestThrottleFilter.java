@@ -29,7 +29,7 @@ public class RequestThrottleFilter implements Filter {
             RequestInfo requestInfo = requestCounts.getOrDefault(clientIp, new RequestInfo(0, System.currentTimeMillis()));
 
             if (System.currentTimeMillis() - requestInfo.startTime > THRESHOLD_TIME_MS) {
-                // Reset the count after time window
+                // Reset the count after a time window
                 requestInfo = new RequestInfo(1, System.currentTimeMillis());
             } else {
                 // Increment request count
