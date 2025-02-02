@@ -1,7 +1,7 @@
 package de.tudl.playground.bugit.controller;
 
-import de.tudl.playground.bugit.dtos.LoginRequest;
-import de.tudl.playground.bugit.dtos.RegisterRequest;
+import de.tudl.playground.bugit.dtos.requests.LoginRequest;
+import de.tudl.playground.bugit.dtos.requests.RegisterRequest;
 import de.tudl.playground.bugit.services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

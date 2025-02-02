@@ -1,4 +1,4 @@
-package de.tudl.playground.bugit.dtos;
+package de.tudl.playground.bugit.dtos.requests;
 
 import lombok.*;
 

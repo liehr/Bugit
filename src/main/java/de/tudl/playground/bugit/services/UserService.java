@@ -1,7 +1,7 @@
 package de.tudl.playground.bugit.services;
 
-import de.tudl.playground.bugit.dtos.LoginRequest;
-import de.tudl.playground.bugit.dtos.RegisterRequest;
+import de.tudl.playground.bugit.dtos.requests.LoginRequest;
+import de.tudl.playground.bugit.dtos.requests.RegisterRequest;
 import de.tudl.playground.bugit.models.User;
 import de.tudl.playground.bugit.repositories.UserRepository;
 import lombok.extern.slf4j.Slf4j;
