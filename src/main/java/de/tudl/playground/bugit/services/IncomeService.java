@@ -7,71 +7,85 @@ import de.tudl.playground.bugit.models.User;
 import de.tudl.playground.bugit.repositories.IncomeRepository;
 import de.tudl.playground.bugit.repositories.UserRepository;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class IncomeService {
+
     private final IncomeRepository incomeRepository;
     private final UserRepository userRepository;
 
-    private final JwtService jwtService;
-
-    public IncomeService(IncomeRepository incomeRepository, UserRepository userRepository, JwtService jwtService) {
+    public IncomeService(IncomeRepository incomeRepository, UserRepository userRepository) {
         this.incomeRepository = incomeRepository;
         this.userRepository = userRepository;
-        this.jwtService = jwtService;
     }
 
+    /**
+     * Retrieves the currently authenticated user.
+     *
+     * @return the User entity corresponding to the current user.
+     * @throws IllegalStateException if no authentication is present or user details cannot be extracted.
+     * @throws UsernameNotFoundException if the user is not found in the repository.
+     */
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("No authenticated user found.");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof UserDetails)) {
+            throw new IllegalStateException("User details not found in authentication.");
+        }
+
+        String username = ((UserDetails) principal).getUsername();
+        return userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User with username " + username + " not found."));
+    }
+
+    /**
+     * Creates an Income record for the current user.
+     *
+     * @param request the income creation request.
+     * @return the response DTO containing the income details.
+     */
     public IncomeResponse create(CreateIncomeRequest request) {
+        User currentUser = getCurrentUser();
 
-        UsernamePasswordAuthenticationToken authentication = (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        Income income = new Income();
+        income.setId(UUID.randomUUID());
+        income.setSource(request.source());
+        income.setAmount(request.amount());
+        income.setUser(currentUser);
 
-        if (authentication.isAuthenticated())
-        {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            Optional<User> userOptional = userRepository.findUserByUsername(userDetails.getUsername());
+        incomeRepository.save(income);
 
-            if (userOptional.isPresent())
-            {
-                Income income = new Income();
-                income.setId(UUID.randomUUID());
-                income.setSource(request.source());
-                income.setAmount(request.amount());
-                income.setUser(userOptional.get());
-
-                incomeRepository.save(income);
-
-                return new IncomeResponse(income.getSource(), income.getAmount());
-            }
-        }
-
-        return null;
+        return new IncomeResponse(income.getSource(), income.getAmount());
     }
 
+    /**
+     * Retrieves all incomes associated with the currently authenticated user.
+     *
+     * @return a list of IncomeResponse DTOs.
+     */
     public List<IncomeResponse> getAllIncomesByUser() {
-        UsernamePasswordAuthenticationToken authentication = (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = getCurrentUser();
 
-        List<IncomeResponse> incomeResponses = new ArrayList<>();
+        // If your repository method returns an Optional<List<Income>>, use orElse with an empty list.
+        List<Income> incomes = incomeRepository.findIncomesByUser(currentUser)
+                .orElse(Collections.emptyList());
 
-        if (authentication.isAuthenticated()) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            Optional<User> userOptional = userRepository.findUserByUsername(userDetails.getUsername());
-
-            if (userOptional.isPresent()) {
-                Optional<List<Income>> incomes = incomeRepository.findIncomesByUser(userOptional.get());
-
-                incomes.ifPresent(incomeList -> incomeList.forEach(e ->
-                        incomeResponses.add(new IncomeResponse(e.getSource(), e.getAmount()))));
-            }
-        }
-
-        return incomeResponses;
+        return incomes.stream()
+                .map(income -> new IncomeResponse(income.getSource(), income.getAmount()))
+                .collect(Collectors.toList());
     }
 }

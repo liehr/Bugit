@@ -10,6 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/income")
+@CrossOrigin
 public class IncomeController {
 
     private final IncomeService incomeService;

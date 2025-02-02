@@ -80,4 +80,10 @@ public class SecurityConfig {
         registrationBean.addUrlPatterns("/api/*"); // Schützt alle API-Endpunkte
         return registrationBean;
     }
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
 }
