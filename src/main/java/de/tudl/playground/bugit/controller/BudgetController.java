@@ -3,7 +3,6 @@ package de.tudl.playground.bugit.controller;
 import de.tudl.playground.bugit.dtos.requests.CreateBudgetRequest;
 import de.tudl.playground.bugit.dtos.requests.UpdateBudgetRequest;
 import de.tudl.playground.bugit.dtos.responses.BudgetResponse;
-import de.tudl.playground.bugit.models.Budget;
 import de.tudl.playground.bugit.services.BudgetService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

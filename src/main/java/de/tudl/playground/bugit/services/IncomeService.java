@@ -7,16 +7,10 @@ import de.tudl.playground.bugit.dtos.responses.IncomeResponse;
 import de.tudl.playground.bugit.models.Income;
 import de.tudl.playground.bugit.models.User;
 import de.tudl.playground.bugit.repositories.IncomeRepository;
-import de.tudl.playground.bugit.repositories.UserRepository;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
