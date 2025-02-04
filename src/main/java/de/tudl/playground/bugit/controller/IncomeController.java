@@ -4,6 +4,7 @@ import de.tudl.playground.bugit.dtos.requests.CreateIncomeRequest;
 import de.tudl.playground.bugit.dtos.requests.DeleteIncomeRequest;
 import de.tudl.playground.bugit.dtos.requests.UpdateIncomeRequest;
 import de.tudl.playground.bugit.dtos.responses.IncomeResponse;
+import de.tudl.playground.bugit.services.EncryptionService;
 import de.tudl.playground.bugit.services.IncomeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ public class IncomeController {
     @PostMapping("/create")
     public ResponseEntity<IncomeResponse> createIncome(@RequestBody CreateIncomeRequest request)
     {
+
         return new ResponseEntity<>(incomeService.create(request), HttpStatus.CREATED);
     }
 

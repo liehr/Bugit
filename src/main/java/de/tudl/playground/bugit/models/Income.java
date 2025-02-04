@@ -22,7 +22,7 @@ public class Income
     private String source;
 
     @Column(nullable = false)
-    private double amount;
+    private String amount;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)

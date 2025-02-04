@@ -18,10 +18,12 @@ public class IncomeService {
 
     private final IncomeRepository incomeRepository;
     private final AuthenticationService authenticationService;
+    private final EncryptionService encryptionService;
 
-    public IncomeService(IncomeRepository incomeRepository, AuthenticationService authenticationService) {
+    public IncomeService(IncomeRepository incomeRepository, AuthenticationService authenticationService, EncryptionService encryptionService) {
         this.incomeRepository = incomeRepository;
         this.authenticationService = authenticationService;
+        this.encryptionService = encryptionService;
     }
 
     /**
@@ -35,13 +37,15 @@ public class IncomeService {
 
         Income income = new Income();
         income.setId(UUID.randomUUID());
-        income.setSource(request.source());
-        income.setAmount(request.amount());
+        income.setSource(encryptionService.encrypt(request.source()));
+        income.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
         income.setUser(currentUser);
 
         incomeRepository.save(income);
 
-        return new IncomeResponse(income.getId(), income.getSource(), income.getAmount());
+        String decryptedSource = encryptionService.decrypt(income.getSource());
+        double decryptedAmount = Double.parseDouble(encryptionService.decrypt(income.getAmount()));
+        return new IncomeResponse(income.getId(), decryptedSource, decryptedAmount);
     }
 
 
@@ -58,7 +62,12 @@ public class IncomeService {
                 .orElse(Collections.emptyList());
 
         return incomes.stream()
-                .map(income -> new IncomeResponse(income.getId(), income.getSource(), income.getAmount()))
+                .map(income ->
+                {
+                    String decryptedSource = encryptionService.decrypt(income.getSource());
+                    double decryptedAmount = Double.parseDouble(encryptionService.decrypt(income.getAmount()));
+                    return new IncomeResponse(income.getId(), decryptedSource, decryptedAmount);
+                })
                 .toList();
     }
 
@@ -73,9 +82,12 @@ public class IncomeService {
                 .filter(income -> currentUser.equals(income.getUser()))
                 .map(income -> {
                     income.setSource(request.source());
-                    income.setAmount(request.amount());
+                    income.setAmount(String.valueOf(request.amount()));
                     Income savedIncome = incomeRepository.save(income);
-                    return new IncomeResponse(savedIncome.getId(), savedIncome.getSource(), savedIncome.getAmount());
+
+                    String decryptedSource = encryptionService.decrypt(income.getSource());
+                    double decryptedAmount = Double.parseDouble(encryptionService.decrypt(income.getAmount()));
+                    return new IncomeResponse(savedIncome.getId(), decryptedSource, decryptedAmount);
                 })
                 .orElse(null);
     }

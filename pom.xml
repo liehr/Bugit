@@ -90,6 +90,18 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>0.12.6</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-security-keyvault-secrets</artifactId>
+            <version>4.8.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+            <version>1.12.2</version>
+        </dependency>
     </dependencies>
 
     <build>
