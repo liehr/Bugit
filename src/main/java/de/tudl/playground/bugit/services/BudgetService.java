@@ -1,6 +1,7 @@
 package de.tudl.playground.bugit.services;
 
 import de.tudl.playground.bugit.dtos.requests.CreateBudgetRequest;
+import de.tudl.playground.bugit.dtos.requests.DeleteBudgetRequest;
 import de.tudl.playground.bugit.dtos.requests.UpdateBudgetRequest;
 import de.tudl.playground.bugit.dtos.responses.BudgetResponse;
 import de.tudl.playground.bugit.models.Budget;
@@ -15,7 +16,7 @@ public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final AuthenticationService authenticationService;
 
-    public BudgetService(BudgetRepository budgetRepository, AuthenticationService authenticationService, IncomeService incomeService) {
+    public BudgetService(BudgetRepository budgetRepository, AuthenticationService authenticationService) {
         this.budgetRepository = budgetRepository;
         this.authenticationService = authenticationService;
     }
@@ -48,6 +49,7 @@ public class BudgetService {
 
     public BudgetResponse updateBudget(UpdateBudgetRequest request) {
         User currentUser = authenticationService.getCurrentUser();
+
         if (currentUser == null) {
             return null;
         }
@@ -58,6 +60,22 @@ public class BudgetService {
                     budget.setAmount(request.amount());
                     Budget updatedBudget = budgetRepository.save(budget);
                     return new BudgetResponse(updatedBudget.getId(), updatedBudget.getAmount());
+                })
+                .orElse(null);
+    }
+
+    public String deleteBudget(DeleteBudgetRequest request)
+    {
+        User currentUser = authenticationService.getCurrentUser();
+        if (currentUser == null) {
+            return null;
+        }
+
+        return budgetRepository.findById(UUID.fromString(request.budgetId()))
+                .filter(budget -> currentUser.equals(budget.getUser()))
+                .map(budget -> {
+                    budgetRepository.delete(budget);
+                    return "Success";
                 })
                 .orElse(null);
     }

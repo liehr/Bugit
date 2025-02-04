@@ -54,7 +54,6 @@ public class IncomeService {
     public List<IncomeResponse> getAllIncomesByUser() {
         User currentUser = authenticationService.getCurrentUser();
 
-        // If your repository method returns an Optional<List<Income>>, use orElse with an empty list.
         List<Income> incomes = incomeRepository.findIncomesByUser(currentUser)
                 .orElse(Collections.emptyList());
 

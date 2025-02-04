@@ -18,18 +18,18 @@ public class AuthenticationService {
     }
 
     public User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalStateException("No authenticated user found.");
         }
 
-        Object principal = authentication.getPrincipal();
-        if (!(principal instanceof UserDetails)) {
-            throw new IllegalStateException("User details not found in authentication.");
+        if (authentication.getPrincipal() instanceof UserDetails userDetails) {
+            return userRepository.findUserByUsername(userDetails.getUsername())
+                    .orElseThrow(() -> new UsernameNotFoundException(
+                            "User with username " + userDetails.getUsername() + " not found."));
         }
 
-        String username = ((UserDetails) principal).getUsername();
-        return userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User with username " + username + " not found."));
+        throw new IllegalStateException("User details not found in authentication.");
     }
 }

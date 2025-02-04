@@ -1,6 +1,7 @@
 package de.tudl.playground.bugit.controller;
 
 import de.tudl.playground.bugit.dtos.requests.CreateBudgetRequest;
+import de.tudl.playground.bugit.dtos.requests.DeleteBudgetRequest;
 import de.tudl.playground.bugit.dtos.requests.UpdateBudgetRequest;
 import de.tudl.playground.bugit.dtos.responses.BudgetResponse;
 import de.tudl.playground.bugit.services.BudgetService;
@@ -32,5 +33,11 @@ public class BudgetController {
     @PutMapping("/update")
     public ResponseEntity<BudgetResponse> updateBudget(@RequestBody UpdateBudgetRequest request) {
         return new ResponseEntity<>(budgetService.updateBudget(request), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<String> deleteBudget(@RequestBody DeleteBudgetRequest request)
+    {
+        return new ResponseEntity<>(budgetService.deleteBudget(request), HttpStatus.OK);
     }
 }

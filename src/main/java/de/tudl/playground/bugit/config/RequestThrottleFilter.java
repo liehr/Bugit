@@ -14,8 +14,8 @@ import java.util.concurrent.TimeUnit;
 
 public class RequestThrottleFilter implements Filter {
 
-    private static final long THRESHOLD_TIME_MS = TimeUnit.SECONDS.toMillis(10); // Zeitfenster (10s)
-    private static final int MAX_REQUESTS = 5; // Maximale Anfragen pro IP
+    private static final long THRESHOLD_TIME_MS = TimeUnit.SECONDS.toMillis(20); // Zeitfenster (10s)
+    private static final int MAX_REQUESTS = 20; // Maximale Anfragen pro IP
 
     private final ConcurrentHashMap<String, RequestInfo> requestCounts = new ConcurrentHashMap<>();
 

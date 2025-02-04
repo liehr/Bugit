@@ -44,14 +44,13 @@ public class UserService {
      * @param request the registration request containing user details and a requestId.
      */
     public void register(RegisterRequest request) {
-        User user = buildUserFromRegisterRequest(request);
+        final User user = buildUserFromRegisterRequest(request);
         try {
             userRepository.save(user);
             statusStore.setStatus(request.getRequestId(), "SUCCESS");
         } catch (Exception e) {
-            log.error("Error during registration for request {}: {}", request.getRequestId(), e.getMessage());
+            log.error("Error during registration for request {}: {}", request.getRequestId(), e.getMessage(), e);
             statusStore.setStatus(request.getRequestId(), "FAILED");
-            // Depending on your requirements, you might want to rethrow an application-specific exception here.
         }
     }
 
@@ -64,22 +63,22 @@ public class UserService {
      * @throws IllegalStateException     if authentication fails.
      */
     public String verify(LoginRequest request) {
-        User user = userRepository.findUserByEmail(request.email())
+        final User user = userRepository.findUserByEmail(request.email())
                 .orElseThrow(() -> {
                     log.error("User with Email {} not found.", request.email());
                     return new UsernameNotFoundException("User with email " + request.email() + " not found");
                 });
 
-        Authentication authentication = authenticationManager.authenticate(
+        final Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(user.getUsername(), request.password())
         );
 
         if (authentication.isAuthenticated()) {
             return jwtService.generateToken(user.getUsername());
-        } else {
-            log.error("Authentication failed for user: {}", user.getUsername());
-            throw new IllegalStateException("Authentication failed for user: " + user.getUsername());
         }
+
+        log.error("Authentication failed for user: {}", user.getUsername());
+        throw new IllegalStateException("Authentication failed for user: " + user.getUsername());
     }
 
     /**
@@ -89,11 +88,13 @@ public class UserService {
      * @return a new User entity.
      */
     private User buildUserFromRegisterRequest(RegisterRequest request) {
-        User user = new User();
-        user.setId(UUID.randomUUID());
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        return user;
+
+        return User.builder()
+                .id(UUID.randomUUID())
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .build();
     }
 }
+
