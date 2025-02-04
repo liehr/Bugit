@@ -3,6 +3,7 @@ package de.tudl.playground.bugit.services;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
 import com.azure.security.keyvault.secrets.SecretClientBuilder;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,11 +27,9 @@ public class EncryptionService {
     @Value("${AZURE_KEY_NAME}")
     private String keyName;
 
-    public EncryptionService() {
-        init();
-    }
-
-    private void init() {
+    // Diese Methode wird nach der Konstruktion und der Dependency Injection aufgerufen.
+    @PostConstruct
+    public void init() {
         if (keyVaultUri == null || keyVaultUri.isEmpty()) {
             throw new IllegalStateException("AZURE_KEY_VAULT_URI ist nicht gesetzt!");
         }
