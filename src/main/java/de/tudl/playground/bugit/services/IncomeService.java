@@ -81,8 +81,8 @@ public class IncomeService {
         return incomeRepository.findById(UUID.fromString(request.incomeId()))
                 .filter(income -> currentUser.equals(income.getUser()))
                 .map(income -> {
-                    income.setSource(request.source());
-                    income.setAmount(String.valueOf(request.amount()));
+                    income.setSource(encryptionService.encrypt(request.source()));
+                    income.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
                     Income savedIncome = incomeRepository.save(income);
 
                     String decryptedSource = encryptionService.decrypt(income.getSource());

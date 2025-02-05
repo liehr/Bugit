@@ -4,6 +4,7 @@ import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
 import com.azure.security.keyvault.secrets.SecretClientBuilder;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,34 +22,27 @@ public class EncryptionService {
     private SecretKey secretKey;
     private static final int IV_SIZE = 12;
 
-    @Value("${AZURE_KEY_VAULT_URI}")
-    private String keyVaultUri;
+    private final SecretClient secretClient;
 
-    @Value("${AZURE_KEY_NAME}")
-    private String keyName;
+    private final String keyName;
 
-    // Diese Methode wird nach der Konstruktion und der Dependency Injection aufgerufen.
+    @Autowired
+    public EncryptionService(SecretClient secretClient,
+                             @Value("${AZURE_KEY_NAME}") String keyName) {
+        this.secretClient = secretClient;
+        this.keyName = keyName;
+    }
+
     @PostConstruct
     public void init() {
-        if (keyVaultUri == null || keyVaultUri.isEmpty()) {
-            throw new IllegalStateException("AZURE_KEY_VAULT_URI ist nicht gesetzt!");
-        }
-
-        SecretClient secretClient = new SecretClientBuilder()
-                .vaultUrl(keyVaultUri)
-                .credential(new DefaultAzureCredentialBuilder().build())
-                .buildClient();
-
         String keyBase64 = secretClient.getSecret(keyName).getValue();
         if (keyBase64 == null || keyBase64.isEmpty()) {
             throw new IllegalStateException("Kein gültiger Secret-Key gefunden!");
         }
-
         byte[] keyBytes = Base64.getDecoder().decode(keyBase64);
         if (keyBytes.length != 32) {
             throw new IllegalArgumentException("Ungültige Schlüssellänge. Erwartet: 32 Byte");
         }
-
         this.secretKey = new SecretKeySpec(keyBytes, "AES");
     }
 

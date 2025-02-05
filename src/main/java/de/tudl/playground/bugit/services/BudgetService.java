@@ -15,10 +15,12 @@ import java.util.UUID;
 public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final AuthenticationService authenticationService;
+    private final EncryptionService encryptionService;
 
-    public BudgetService(BudgetRepository budgetRepository, AuthenticationService authenticationService) {
+    public BudgetService(BudgetRepository budgetRepository, AuthenticationService authenticationService, EncryptionService encryptionService) {
         this.budgetRepository = budgetRepository;
         this.authenticationService = authenticationService;
+        this.encryptionService = encryptionService;
     }
 
     public BudgetResponse createBudget(CreateBudgetRequest request) {
@@ -26,12 +28,12 @@ public class BudgetService {
 
         Budget budget = new Budget();
         budget.setId(UUID.randomUUID());
-        budget.setAmount(request.amount());
+        budget.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
         budget.setUser(user);
 
         budgetRepository.save(budget);
 
-        return new BudgetResponse(budget.getId(), budget.getAmount());
+        return new BudgetResponse(budget.getId(), Integer.parseInt(encryptionService.decrypt(budget.getAmount())));
     }
 
     public BudgetResponse getBudgetByUser() {
@@ -43,7 +45,7 @@ public class BudgetService {
 
         return budgetRepository.findBudgetByUser(currentUser)
                 .filter(budget -> currentUser.equals(budget.getUser()))
-                .map(budget -> new BudgetResponse(budget.getId(), budget.getAmount()))
+                .map(budget -> new BudgetResponse(budget.getId(), Integer.parseInt(encryptionService.decrypt(budget.getAmount()))))
                 .orElse(null);
     }
 
@@ -57,9 +59,9 @@ public class BudgetService {
         return budgetRepository.findById(UUID.fromString(request.budgetId()))
                 .filter(budget -> currentUser.equals(budget.getUser()))
                 .map(budget -> {
-                    budget.setAmount(request.amount());
+                    budget.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
                     Budget updatedBudget = budgetRepository.save(budget);
-                    return new BudgetResponse(updatedBudget.getId(), updatedBudget.getAmount());
+                    return new BudgetResponse(updatedBudget.getId(), Integer.parseInt(encryptionService.decrypt(updatedBudget.getAmount())));
                 })
                 .orElse(null);
     }

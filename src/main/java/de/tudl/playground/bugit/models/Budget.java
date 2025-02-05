@@ -19,7 +19,7 @@ public class Budget {
     private UUID id;
 
     @Column(nullable = false)
-    private int amount;
+    private String amount;
 
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false)
