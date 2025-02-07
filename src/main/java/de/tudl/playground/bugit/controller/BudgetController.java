@@ -4,6 +4,7 @@ import de.tudl.playground.bugit.dtos.requests.CreateBudgetRequest;
 import de.tudl.playground.bugit.dtos.requests.DeleteBudgetRequest;
 import de.tudl.playground.bugit.dtos.requests.UpdateBudgetRequest;
 import de.tudl.playground.bugit.dtos.responses.BudgetResponse;
+import de.tudl.playground.bugit.dtos.responses.BudgetResponseWithInvestments;
 import de.tudl.playground.bugit.services.BudgetService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,11 @@ public class BudgetController {
     @GetMapping("/")
     public ResponseEntity<BudgetResponse> getBudgetByUser() {
         return new ResponseEntity<>(budgetService.getBudgetByUser(), HttpStatus.OK);
+    }
+
+    @GetMapping("/invest")
+    public ResponseEntity<BudgetResponseWithInvestments> getBudgetByUserWithInvestments() {
+        return new ResponseEntity<>(budgetService.getBudgetWithInvestments(), HttpStatus.OK);
     }
 
     @PostMapping("/create")

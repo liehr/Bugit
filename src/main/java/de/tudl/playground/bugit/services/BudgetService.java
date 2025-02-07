@@ -4,12 +4,21 @@ import de.tudl.playground.bugit.dtos.requests.CreateBudgetRequest;
 import de.tudl.playground.bugit.dtos.requests.DeleteBudgetRequest;
 import de.tudl.playground.bugit.dtos.requests.UpdateBudgetRequest;
 import de.tudl.playground.bugit.dtos.responses.BudgetResponse;
+import de.tudl.playground.bugit.dtos.responses.BudgetResponseWithInvestments;
+import de.tudl.playground.bugit.dtos.responses.InvestmentResponse;
+import de.tudl.playground.bugit.exception.UnauthorizedException;
 import de.tudl.playground.bugit.models.Budget;
+import de.tudl.playground.bugit.models.Investment;
 import de.tudl.playground.bugit.models.User;
 import de.tudl.playground.bugit.repositories.BudgetRepository;
+import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class BudgetService {
@@ -49,6 +58,37 @@ public class BudgetService {
                 .orElse(null);
     }
 
+    @SneakyThrows
+    public BudgetResponseWithInvestments getBudgetWithInvestments() {
+        User currentUser = authenticationService.getCurrentUser();
+        if (currentUser == null) {
+            throw new UnauthorizedException("User not authorized!");
+        }
+
+        Optional<Budget> budgetsWithInvestments = budgetRepository.findBudgetWithInvestmentsByUser(currentUser);
+
+        if (budgetsWithInvestments.isPresent()) {
+            Budget budget = budgetsWithInvestments.get();
+
+            String decryptedAmount = encryptionService.decrypt(budget.getAmount());
+            int amountAsInt = Integer.parseInt(decryptedAmount);
+
+            List<InvestmentResponse> investmentResponses = budget.getInvestments().stream()
+                    .map(this::mapToResponse)
+                    .toList();
+
+            return
+                    new BudgetResponseWithInvestments(
+                    budget.getId(),
+                    amountAsInt,
+                    investmentResponses
+            );
+        } else {
+            throw new NoSuchElementException("No budget found for user: " + currentUser.getUsername());
+        }
+    }
+
+
     public BudgetResponse updateBudget(UpdateBudgetRequest request) {
         User currentUser = authenticationService.getCurrentUser();
 
@@ -80,5 +120,17 @@ public class BudgetService {
                     return "Success";
                 })
                 .orElse(null);
+    }
+
+    protected InvestmentResponse mapToResponse(Investment investment) {
+        return new InvestmentResponse(
+                investment.getId(),
+                encryptionService.decrypt(investment.getAsset()),
+                Integer.parseInt(encryptionService.decrypt(investment.getAmount())),
+                encryptionService.decrypt(investment.getCategory()),
+                encryptionService.decrypt(investment.getState()),
+                Integer.parseInt(encryptionService.decrypt(investment.getLiquidity())),
+                investment.getBudget().getId()
+        );
     }
 }
