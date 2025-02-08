@@ -1,8 +1,8 @@
 package de.tudl.playground.bugit.services;
 
-import de.tudl.playground.bugit.dtos.requests.CreateIncomeRequest;
-import de.tudl.playground.bugit.dtos.requests.DeleteIncomeRequest;
-import de.tudl.playground.bugit.dtos.requests.UpdateIncomeRequest;
+import de.tudl.playground.bugit.dtos.requests.income.CreateIncomeRequest;
+import de.tudl.playground.bugit.dtos.requests.income.DeleteIncomeRequest;
+import de.tudl.playground.bugit.dtos.requests.income.UpdateIncomeRequest;
 import de.tudl.playground.bugit.dtos.responses.IncomeResponse;
 import de.tudl.playground.bugit.models.Income;
 import de.tudl.playground.bugit.models.User;

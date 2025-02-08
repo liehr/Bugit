@@ -1,8 +1,8 @@
 package de.tudl.playground.bugit.services;
 
-import de.tudl.playground.bugit.dtos.requests.CreateBudgetRequest;
-import de.tudl.playground.bugit.dtos.requests.DeleteBudgetRequest;
-import de.tudl.playground.bugit.dtos.requests.UpdateBudgetRequest;
+import de.tudl.playground.bugit.dtos.requests.budget.CreateBudgetRequest;
+import de.tudl.playground.bugit.dtos.requests.budget.DeleteBudgetRequest;
+import de.tudl.playground.bugit.dtos.requests.budget.UpdateBudgetRequest;
 import de.tudl.playground.bugit.dtos.responses.BudgetResponse;
 import de.tudl.playground.bugit.dtos.responses.BudgetResponseWithInvestments;
 import de.tudl.playground.bugit.dtos.responses.InvestmentResponse;
@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class BudgetService {

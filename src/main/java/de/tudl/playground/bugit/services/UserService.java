@@ -1,9 +1,15 @@
 package de.tudl.playground.bugit.services;
 
-import de.tudl.playground.bugit.dtos.requests.LoginRequest;
-import de.tudl.playground.bugit.dtos.requests.RegisterRequest;
+import de.tudl.playground.bugit.dtos.requests.user.LoginRequest;
+import de.tudl.playground.bugit.dtos.requests.user.RegisterRequest;
+import de.tudl.playground.bugit.dtos.requests.user.UpdateUserRequest;
+import de.tudl.playground.bugit.dtos.responses.UserResponse;
+import de.tudl.playground.bugit.exception.UnauthorizedException;
+import de.tudl.playground.bugit.models.Budget;
 import de.tudl.playground.bugit.models.User;
+import de.tudl.playground.bugit.repositories.BudgetRepository;
 import de.tudl.playground.bugit.repositories.UserRepository;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,21 +25,25 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final BudgetRepository budgetRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final RequestStatusStore statusStore;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final AuthenticationService authenticationService;
 
-    public UserService(UserRepository userRepository,
+    public UserService(UserRepository userRepository, BudgetRepository budgetRepository,
                        AuthenticationManager authenticationManager,
                        JwtService jwtService,
                        RequestStatusStore statusStore,
-                       BCryptPasswordEncoder passwordEncoder) {
+                       BCryptPasswordEncoder passwordEncoder, AuthenticationService authenticationService) {
         this.userRepository = userRepository;
+        this.budgetRepository = budgetRepository;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.statusStore = statusStore;
         this.passwordEncoder = passwordEncoder;
+        this.authenticationService = authenticationService;
     }
 
     /**
@@ -74,7 +84,7 @@ public class UserService {
         );
 
         if (authentication.isAuthenticated()) {
-            return jwtService.generateToken(user.getUsername());
+            return jwtService.generateToken(user.getUsername(), user.isPremium());
         }
 
         log.error("Authentication failed for user: {}", user.getUsername());
@@ -94,7 +104,37 @@ public class UserService {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .premium(false)
                 .build();
+    }
+
+    @SneakyThrows
+    public UserResponse updateUser(UpdateUserRequest request) {
+        User user = authenticationService.getCurrentUser();
+
+        if(user == null)
+            throw new UnauthorizedException("User not authorized");
+
+        user.setEmail(request.email());
+        user.setUsername(request.username());
+
+        return new UserResponse(
+                user.getId().toString(),
+                user.getUsername(),
+                user.getEmail(),
+                user.isPremium()
+        );
+    }
+
+    @SneakyThrows
+    public boolean isUserPremium()
+    {
+        User user = authenticationService.getCurrentUser();
+
+        if (user == null)
+            throw new UnauthorizedException("User is not authorized");
+
+        return user.isPremium();
     }
 }
 

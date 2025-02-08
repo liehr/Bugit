@@ -1,8 +1,11 @@
 package de.tudl.playground.bugit.controller;
 
-import de.tudl.playground.bugit.dtos.requests.LoginRequest;
-import de.tudl.playground.bugit.dtos.requests.RegisterRequest;
+import de.tudl.playground.bugit.dtos.requests.user.LoginRequest;
+import de.tudl.playground.bugit.dtos.requests.user.RegisterRequest;
+import de.tudl.playground.bugit.dtos.requests.user.UpdateUserRequest;
+import de.tudl.playground.bugit.dtos.responses.UserResponse;
 import de.tudl.playground.bugit.services.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,5 +38,11 @@ public class UserController {
     public ResponseEntity<String> login(@RequestBody LoginRequest request)
     {
         return ResponseEntity.ok(userService.verify(request));
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<UserResponse> updateUser(@RequestBody UpdateUserRequest request)
+    {
+        return new ResponseEntity<>(userService.updateUser(request), HttpStatus.OK);
     }
 }

@@ -1,4 +1,4 @@
-package de.tudl.playground.bugit.dtos.requests;
+package de.tudl.playground.bugit.dtos.requests.investment;
 
 public record CreateInvestmentRequest(
         String asset,

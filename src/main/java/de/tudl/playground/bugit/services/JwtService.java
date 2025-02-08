@@ -34,9 +34,12 @@ public class JwtService {
         }
     }
 
-    public String generateToken(String username)
+    public String generateToken(String username, boolean isPremium)
     {
         Map<String, Object> claims = new HashMap<>();
+
+        claims.put("username", username);
+        claims.put("isPremium", isPremium);
 
         return Jwts.builder()
                 .claims()

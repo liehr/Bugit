@@ -1,8 +1,8 @@
 package de.tudl.playground.bugit.controller;
 
-import de.tudl.playground.bugit.dtos.requests.CreateBudgetRequest;
-import de.tudl.playground.bugit.dtos.requests.DeleteBudgetRequest;
-import de.tudl.playground.bugit.dtos.requests.UpdateBudgetRequest;
+import de.tudl.playground.bugit.dtos.requests.budget.CreateBudgetRequest;
+import de.tudl.playground.bugit.dtos.requests.budget.DeleteBudgetRequest;
+import de.tudl.playground.bugit.dtos.requests.budget.UpdateBudgetRequest;
 import de.tudl.playground.bugit.dtos.responses.BudgetResponse;
 import de.tudl.playground.bugit.dtos.responses.BudgetResponseWithInvestments;
 import de.tudl.playground.bugit.services.BudgetService;

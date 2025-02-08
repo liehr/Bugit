@@ -1,13 +1,14 @@
 package de.tudl.playground.bugit.services;
 
-import de.tudl.playground.bugit.dtos.requests.CreateInvestmentRequest;
+import de.tudl.playground.bugit.dtos.requests.investment.CreateInvestmentRequest;
+import de.tudl.playground.bugit.dtos.requests.investment.DeleteInvestmentRequest;
+import de.tudl.playground.bugit.dtos.requests.investment.UpdateInvestmentRequest;
 import de.tudl.playground.bugit.dtos.responses.InvestmentResponse;
 import de.tudl.playground.bugit.exception.UnauthorizedException;
 import de.tudl.playground.bugit.models.Budget;
 import de.tudl.playground.bugit.models.Investment;
 import de.tudl.playground.bugit.models.User;
 import de.tudl.playground.bugit.repositories.BudgetRepository;
-import de.tudl.playground.bugit.repositories.IncomeRepository;
 import de.tudl.playground.bugit.repositories.InvestmentRepository;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
@@ -71,6 +72,48 @@ public class InvestmentService {
                         .map(this::mapToResponse)
                         .toList())
                 .orElseGet(Collections::emptyList);
+    }
+
+    @SneakyThrows
+    public InvestmentResponse updateInvestment(UpdateInvestmentRequest request) {
+        User user = authenticationService.getCurrentUser();
+
+        if (user == null) {
+            throw new UnauthorizedException("User not authorized!");
+        }
+
+        return investmentRepository.findById(UUID.fromString(request.investmentId()))
+                .filter(investment -> user.equals(investment.getUser()))
+                .map(investment ->
+                {
+                    investment.setAsset(encryptionService.encrypt(request.asset()));
+                    investment.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
+                    investment.setCategory(encryptionService.encrypt(request.category()));
+                    investment.setState(encryptionService.encrypt(request.state()));
+                    investment.setLiquidity(encryptionService.encrypt(String.valueOf(request.liquidity())));
+
+                    investmentRepository.save(investment);
+
+                    return mapToResponse(investment);
+                })
+                .orElse(null);
+    }
+
+    @SneakyThrows
+    public String deleteInvestment(DeleteInvestmentRequest request) {
+        User user = authenticationService.getCurrentUser();
+
+        if (user == null) {
+            throw new UnauthorizedException("User not authorized");
+        }
+
+        return investmentRepository.findById(UUID.fromString(request.investmentId()))
+                .filter(investment -> user.equals(investment.getUser()))
+                .map(investment -> {
+                        investmentRepository.delete(investment);
+                        return "SUCCESS";
+                })
+                .orElse(null);
     }
 
     protected InvestmentResponse mapToResponse(Investment investment) {
