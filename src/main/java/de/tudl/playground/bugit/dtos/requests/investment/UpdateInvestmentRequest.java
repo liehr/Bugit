@@ -6,6 +6,8 @@ public record UpdateInvestmentRequest(
         int amount,
         String category,
         String state,
-        int liquidity
+        int liquidity,
+        boolean recurring,
+        int monthlyInvest
 ) {
 }

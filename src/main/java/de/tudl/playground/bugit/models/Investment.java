@@ -1,10 +1,7 @@
 package de.tudl.playground.bugit.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -15,6 +12,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Investment
 {
     @Id
@@ -34,6 +32,12 @@ public class Investment
 
     @Column(nullable = false)
     private String liquidity;
+
+    @Column(nullable = false)
+    private String recurring;
+
+    @Column(nullable = false)
+    private String monthlyInvest;
 
     @ManyToOne
     @JoinColumn(name = "budget_id")

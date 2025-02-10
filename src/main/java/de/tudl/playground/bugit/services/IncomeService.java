@@ -4,13 +4,15 @@ import de.tudl.playground.bugit.dtos.requests.income.CreateIncomeRequest;
 import de.tudl.playground.bugit.dtos.requests.income.DeleteIncomeRequest;
 import de.tudl.playground.bugit.dtos.requests.income.UpdateIncomeRequest;
 import de.tudl.playground.bugit.dtos.responses.IncomeResponse;
+import de.tudl.playground.bugit.exception.UnauthorizedException;
 import de.tudl.playground.bugit.models.Income;
 import de.tudl.playground.bugit.models.User;
 import de.tudl.playground.bugit.repositories.IncomeRepository;
+import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -26,85 +28,62 @@ public class IncomeService {
         this.encryptionService = encryptionService;
     }
 
-    /**
-     * Creates an Income record for the current user.
-     *
-     * @param request the income creation request.
-     * @return the response DTO containing the income details.
-     */
     public IncomeResponse create(CreateIncomeRequest request) {
-        User currentUser = authenticationService.getCurrentUser();
-
-        Income income = new Income();
-        income.setId(UUID.randomUUID());
-        income.setSource(encryptionService.encrypt(request.source()));
-        income.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
-        income.setUser(currentUser);
-
+        User user = getAuthenticatedUser();
+        Income income = new Income(UUID.randomUUID(), encrypt(request.source()), encrypt(String.valueOf(request.amount())), user);
         incomeRepository.save(income);
-
-        String decryptedSource = encryptionService.decrypt(income.getSource());
-        double decryptedAmount = Double.parseDouble(encryptionService.decrypt(income.getAmount()));
-        return new IncomeResponse(income.getId(), decryptedSource, decryptedAmount);
+        return mapToResponse(income);
     }
 
-
-
-    /**
-     * Retrieves all incomes associated with the currently authenticated user.
-     *
-     * @return a list of IncomeResponse DTOs.
-     */
     public List<IncomeResponse> getAllIncomesByUser() {
-        User currentUser = authenticationService.getCurrentUser();
-
-        List<Income> incomes = incomeRepository.findIncomesByUser(currentUser)
-                .orElse(Collections.emptyList());
-
-        return incomes.stream()
-                .map(income ->
-                {
-                    String decryptedSource = encryptionService.decrypt(income.getSource());
-                    double decryptedAmount = Double.parseDouble(encryptionService.decrypt(income.getAmount()));
-                    return new IncomeResponse(income.getId(), decryptedSource, decryptedAmount);
-                })
+        return incomeRepository.findIncomesByUser(getAuthenticatedUser())
+                .orElse(List.of())
+                .stream()
+                .map(this::mapToResponse)
                 .toList();
     }
 
     public IncomeResponse update(UpdateIncomeRequest request) {
-        User currentUser = authenticationService.getCurrentUser();
-
-        if (currentUser == null) {
-            return null;
-        }
-
         return incomeRepository.findById(UUID.fromString(request.incomeId()))
-                .filter(income -> currentUser.equals(income.getUser()))
+                .filter(income -> income.getUser().equals(getAuthenticatedUser()))
                 .map(income -> {
-                    income.setSource(encryptionService.encrypt(request.source()));
-                    income.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
-                    Income savedIncome = incomeRepository.save(income);
-
-                    String decryptedSource = encryptionService.decrypt(income.getSource());
-                    double decryptedAmount = Double.parseDouble(encryptionService.decrypt(income.getAmount()));
-                    return new IncomeResponse(savedIncome.getId(), decryptedSource, decryptedAmount);
+                    income.setSource(encrypt(request.source()));
+                    income.setAmount(encrypt(String.valueOf(request.amount())));
+                    incomeRepository.save(income);
+                    return mapToResponse(income);
                 })
                 .orElse(null);
     }
 
     public String delete(DeleteIncomeRequest request) {
-
-        User currentUser = authenticationService.getCurrentUser();
-        if (currentUser == null) {
-            return null;
-        }
-
         return incomeRepository.findById(UUID.fromString(request.incomeId()))
-                .filter(income -> currentUser.equals(income.getUser()))
+                .filter(income -> income.getUser().equals(getAuthenticatedUser()))
                 .map(income -> {
                     incomeRepository.delete(income);
                     return "SUCCESS";
                 })
                 .orElse(null);
+    }
+
+    @SneakyThrows
+    private User getAuthenticatedUser() {
+        return Optional.ofNullable(authenticationService.getCurrentUser())
+                .orElseThrow(() -> new UnauthorizedException("User not authorized!"));
+    }
+
+    private IncomeResponse mapToResponse(Income income) {
+        return new IncomeResponse(
+                income.getId(),
+                decrypt(income.getSource()),
+                Double.parseDouble(decrypt(income.getAmount()))
+        );
+    }
+
+    private String encrypt(String value) {
+        return encryptionService.encrypt(value);
+    }
+
+    private String decrypt(String value) {
+        return encryptionService.decrypt(value);
     }
 }

@@ -13,9 +13,10 @@ import de.tudl.playground.bugit.repositories.InvestmentRepository;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class InvestmentService {
@@ -25,7 +26,8 @@ public class InvestmentService {
     private final EncryptionService encryptionService;
     private final BudgetRepository budgetRepository;
 
-    public InvestmentService(InvestmentRepository investmentRepository, AuthenticationService authenticationService, EncryptionService encryptionService, BudgetRepository budgetRepository) {
+    public InvestmentService(InvestmentRepository investmentRepository, AuthenticationService authenticationService,
+                             EncryptionService encryptionService, BudgetRepository budgetRepository) {
         this.investmentRepository = investmentRepository;
         this.authenticationService = authenticationService;
         this.encryptionService = encryptionService;
@@ -34,26 +36,11 @@ public class InvestmentService {
 
     @SneakyThrows
     public InvestmentResponse createInvestment(CreateInvestmentRequest request) {
-        User user = authenticationService.getCurrentUser();
-        if (user == null) {
-            throw new UnauthorizedException("User not authorized!");
-        }
-
-        Budget budget = budgetRepository
-                .findBudgetByUser(user)
+        User user = getAuthenticatedUser();
+        Budget budget = budgetRepository.findBudgetByUser(user)
                 .orElseThrow(() -> new IllegalStateException("No budget found for the current user."));
 
-        Investment investment = new Investment();
-        investment.setId(UUID.randomUUID());
-        investment.setAsset(encryptionService.encrypt(request.asset()));
-        investment.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
-        investment.setCategory(encryptionService.encrypt(request.category()));
-        investment.setState(encryptionService.encrypt(request.state()));
-        investment.setLiquidity(encryptionService.encrypt(String.valueOf(request.liquidity())));
-
-        investment.setUser(user);
-        investment.setBudget(budget);
-
+        Investment investment = buildInvestment(request, user, budget);
         investmentRepository.save(investment);
 
         return mapToResponse(investment);
@@ -61,70 +48,88 @@ public class InvestmentService {
 
     @SneakyThrows
     public List<InvestmentResponse> getAllInvestmentsByUser() {
-        User user = authenticationService.getCurrentUser();
-
-        if (user == null) {
-            throw new UnauthorizedException("User not authorized!");
-        }
-
+        User user = getAuthenticatedUser();
         return investmentRepository.findAllByUser(user)
                 .map(investments -> investments.stream()
                         .map(this::mapToResponse)
-                        .toList())
-                .orElseGet(Collections::emptyList);
+                        .collect(Collectors.toList()))
+                .orElse(List.of());
     }
 
     @SneakyThrows
     public InvestmentResponse updateInvestment(UpdateInvestmentRequest request) {
-        User user = authenticationService.getCurrentUser();
+        User user = getAuthenticatedUser();
+        Investment investment = getInvestmentByIdAndUser(request.investmentId(), user);
 
-        if (user == null) {
-            throw new UnauthorizedException("User not authorized!");
-        }
+        updateInvestmentFields(investment, request);
+        investmentRepository.save(investment);
 
-        return investmentRepository.findById(UUID.fromString(request.investmentId()))
-                .filter(investment -> user.equals(investment.getUser()))
-                .map(investment ->
-                {
-                    investment.setAsset(encryptionService.encrypt(request.asset()));
-                    investment.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
-                    investment.setCategory(encryptionService.encrypt(request.category()));
-                    investment.setState(encryptionService.encrypt(request.state()));
-                    investment.setLiquidity(encryptionService.encrypt(String.valueOf(request.liquidity())));
-
-                    investmentRepository.save(investment);
-
-                    return mapToResponse(investment);
-                })
-                .orElse(null);
+        return mapToResponse(investment);
     }
 
     @SneakyThrows
     public String deleteInvestment(DeleteInvestmentRequest request) {
-        User user = authenticationService.getCurrentUser();
+        User user = getAuthenticatedUser();
+        Investment investment = getInvestmentByIdAndUser(request.investmentId(), user);
 
-        if (user == null) {
-            throw new UnauthorizedException("User not authorized");
-        }
-
-        return investmentRepository.findById(UUID.fromString(request.investmentId()))
-                .filter(investment -> user.equals(investment.getUser()))
-                .map(investment -> {
-                        investmentRepository.delete(investment);
-                        return "SUCCESS";
-                })
-                .orElse(null);
+        investmentRepository.delete(investment);
+        return "SUCCESS";
     }
 
-    protected InvestmentResponse mapToResponse(Investment investment) {
+    // --- Helper Methods ---
+
+    @SneakyThrows
+    private User getAuthenticatedUser() {
+        return Optional.ofNullable(authenticationService.getCurrentUser())
+                .orElseThrow(() -> new UnauthorizedException("User not authorized!"));
+    }
+
+    private Investment getInvestmentByIdAndUser(String investmentId, User user) {
+        return investmentRepository.findById(UUID.fromString(investmentId))
+                .filter(inv -> inv.getUser().equals(user))
+                .orElseThrow(() -> new IllegalStateException("Investment not found or unauthorized."));
+    }
+
+    private Investment buildInvestment(CreateInvestmentRequest request, User user, Budget budget) {
+        return Investment.builder()
+                .id(UUID.randomUUID())
+                .asset(encrypt(request.asset()))
+                .amount(encrypt(String.valueOf(request.amount())))
+                .category(encrypt(request.category()))
+                .state(encrypt(request.state()))
+                .liquidity(encrypt(String.valueOf(request.liquidity())))
+                .recurring(encrypt(String.valueOf(request.recurring())))
+                .monthlyInvest(request.monthlyInvest() > 0 ? encrypt(String.valueOf(request.monthlyInvest())) : null)
+                .user(user)
+                .budget(budget)
+                .build();
+    }
+
+    private void updateInvestmentFields(Investment investment, UpdateInvestmentRequest request) {
+        investment.setAsset(encrypt(request.asset()));
+        investment.setAmount(encrypt(String.valueOf(request.amount())));
+        investment.setCategory(encrypt(request.category()));
+        investment.setState(encrypt(request.state()));
+        investment.setLiquidity(encrypt(String.valueOf(request.liquidity())));
+    }
+
+    private InvestmentResponse mapToResponse(Investment investment) {
         return new InvestmentResponse(
                 investment.getId(),
-                encryptionService.decrypt(investment.getAsset()),
-                Integer.parseInt(encryptionService.decrypt(investment.getAmount())),
-                encryptionService.decrypt(investment.getCategory()),
-                encryptionService.decrypt(investment.getState()),
-                Integer.parseInt(encryptionService.decrypt(investment.getLiquidity())),
+                decrypt(investment.getAsset()),
+                Integer.parseInt(decrypt(investment.getAmount())),
+                decrypt(investment.getCategory()),
+                decrypt(investment.getState()),
+                Integer.parseInt(decrypt(investment.getLiquidity())),
                 investment.getBudget().getId()
         );
+    }
+
+    private String encrypt(String value) {
+        return encryptionService.encrypt(value);
+    }
+
+    private String decrypt(String value) {
+        return encryptionService.decrypt(value);
     }
 }

@@ -15,7 +15,6 @@ import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,88 +31,48 @@ public class BudgetService {
     }
 
     public BudgetResponse createBudget(CreateBudgetRequest request) {
-        User user = authenticationService.getCurrentUser();
-
+        User user = getAuthenticatedUser();
         Budget budget = new Budget();
         budget.setId(UUID.randomUUID());
-        budget.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
+        budget.setAmount(encrypt(String.valueOf(request.amount())));
         budget.setUser(user);
 
         budgetRepository.save(budget);
-
-        return new BudgetResponse(budget.getId(), Integer.parseInt(encryptionService.decrypt(budget.getAmount())));
+        return mapToResponse(budget);
     }
 
     public BudgetResponse getBudgetByUser() {
-        User currentUser = authenticationService.getCurrentUser();
-
-        if (currentUser == null) {
-            return null;
-        }
-
-        return budgetRepository.findBudgetByUser(currentUser)
-                .filter(budget -> currentUser.equals(budget.getUser()))
-                .map(budget -> new BudgetResponse(budget.getId(), Integer.parseInt(encryptionService.decrypt(budget.getAmount()))))
+        return budgetRepository.findBudgetByUser(getAuthenticatedUser())
+                .map(this::mapToResponse)
                 .orElse(null);
     }
 
     @SneakyThrows
     public BudgetResponseWithInvestments getBudgetWithInvestments() {
-        User currentUser = authenticationService.getCurrentUser();
-        if (currentUser == null) {
-            throw new UnauthorizedException("User not authorized!");
-        }
+        Budget budget = budgetRepository.findBudgetWithInvestmentsByUser(getAuthenticatedUser())
+                .orElseThrow(() -> new IllegalStateException("No budget found for user"));
 
-        Optional<Budget> budgetsWithInvestments = budgetRepository.findBudgetWithInvestmentsByUser(currentUser);
+        List<InvestmentResponse> investments = budget.getInvestments().stream()
+                .map(this::mapInvestmentToResponse)
+                .toList();
 
-        if (budgetsWithInvestments.isPresent()) {
-            Budget budget = budgetsWithInvestments.get();
-
-            String decryptedAmount = encryptionService.decrypt(budget.getAmount());
-            int amountAsInt = Integer.parseInt(decryptedAmount);
-
-            List<InvestmentResponse> investmentResponses = budget.getInvestments().stream()
-                    .map(this::mapToResponse)
-                    .toList();
-
-            return
-                    new BudgetResponseWithInvestments(
-                    budget.getId(),
-                    amountAsInt,
-                    investmentResponses
-            );
-        } else {
-            throw new NoSuchElementException("No budget found for user: " + currentUser.getUsername());
-        }
+        return new BudgetResponseWithInvestments(budget.getId(), decryptToInt(budget.getAmount()), investments);
     }
 
-
     public BudgetResponse updateBudget(UpdateBudgetRequest request) {
-        User currentUser = authenticationService.getCurrentUser();
-
-        if (currentUser == null) {
-            return null;
-        }
-
         return budgetRepository.findById(UUID.fromString(request.budgetId()))
-                .filter(budget -> currentUser.equals(budget.getUser()))
+                .filter(budget -> budget.getUser().equals(getAuthenticatedUser()))
                 .map(budget -> {
-                    budget.setAmount(encryptionService.encrypt(String.valueOf(request.amount())));
-                    Budget updatedBudget = budgetRepository.save(budget);
-                    return new BudgetResponse(updatedBudget.getId(), Integer.parseInt(encryptionService.decrypt(updatedBudget.getAmount())));
+                    budget.setAmount(encrypt(String.valueOf(request.amount())));
+                    budgetRepository.save(budget);
+                    return mapToResponse(budget);
                 })
                 .orElse(null);
     }
 
-    public String deleteBudget(DeleteBudgetRequest request)
-    {
-        User currentUser = authenticationService.getCurrentUser();
-        if (currentUser == null) {
-            return null;
-        }
-
+    public String deleteBudget(DeleteBudgetRequest request) {
         return budgetRepository.findById(UUID.fromString(request.budgetId()))
-                .filter(budget -> currentUser.equals(budget.getUser()))
+                .filter(budget -> budget.getUser().equals(getAuthenticatedUser()))
                 .map(budget -> {
                     budgetRepository.delete(budget);
                     return "Success";
@@ -121,15 +80,37 @@ public class BudgetService {
                 .orElse(null);
     }
 
-    protected InvestmentResponse mapToResponse(Investment investment) {
+    @SneakyThrows
+    private User getAuthenticatedUser() {
+        return Optional.ofNullable(authenticationService.getCurrentUser())
+                .orElseThrow(() -> new UnauthorizedException("User not authorized!"));
+    }
+
+    private BudgetResponse mapToResponse(Budget budget) {
+        return new BudgetResponse(budget.getId(), decryptToInt(budget.getAmount()));
+    }
+
+    private InvestmentResponse mapInvestmentToResponse(Investment investment) {
         return new InvestmentResponse(
                 investment.getId(),
-                encryptionService.decrypt(investment.getAsset()),
-                Integer.parseInt(encryptionService.decrypt(investment.getAmount())),
-                encryptionService.decrypt(investment.getCategory()),
-                encryptionService.decrypt(investment.getState()),
-                Integer.parseInt(encryptionService.decrypt(investment.getLiquidity())),
+                decrypt(investment.getAsset()),
+                decryptToInt(investment.getAmount()),
+                decrypt(investment.getCategory()),
+                decrypt(investment.getState()),
+                decryptToInt(investment.getLiquidity()),
                 investment.getBudget().getId()
         );
+    }
+
+    private String encrypt(String value) {
+        return encryptionService.encrypt(value);
+    }
+
+    private String decrypt(String value) {
+        return encryptionService.decrypt(value);
+    }
+
+    private int decryptToInt(String value) {
+        return Integer.parseInt(decrypt(value));
     }
 }
