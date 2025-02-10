@@ -38,14 +38,24 @@ public class BudgetService {
         budget.setUser(user);
 
         budgetRepository.save(budget);
+
         return mapToResponse(budget);
     }
 
     public BudgetResponse getBudgetByUser() {
-        return budgetRepository.findBudgetByUser(getAuthenticatedUser())
+        User authenticatedUser = getAuthenticatedUser();
+        return budgetRepository.findBudgetByUser(authenticatedUser)
                 .map(this::mapToResponse)
-                .orElse(null);
+                .orElseGet(() -> {
+                    Budget newBudget = new Budget();
+                    newBudget.setUser(authenticatedUser);
+                    newBudget.setAmount(encrypt(String.valueOf(5)));
+                    newBudget.setId(UUID.randomUUID());
+                    newBudget = budgetRepository.save(newBudget);
+                    return mapToResponse(newBudget);
+                });
     }
+
 
     @SneakyThrows
     public BudgetResponseWithInvestments getBudgetWithInvestments() {

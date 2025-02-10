@@ -53,17 +53,16 @@ public class SpendingService {
                 .orElseThrow(() -> new UnauthorizedException("User not authorized"));
     }
 
-    private Spending buildSpending(CreateSpendingRequest request, User user)
-    {
+    private Spending buildSpending(CreateSpendingRequest request, User user) {
         return Spending.builder()
                 .id(UUID.randomUUID())
                 .name(encrypt(request.name()))
                 .amount(encrypt(String.valueOf(request.amount())))
                 .category(encrypt(request.category()))
-                .date(encrypt(String.valueOf(request.date())))
+                .date(request.date() != null ? encrypt(String.valueOf(request.date())) : null)
                 .isRecurring(encrypt(String.valueOf(request.isRecurring())))
                 .recurrenceInterval(request.recurrenceInterval())
-                .endDate(encrypt(String.valueOf(request.endDate())))
+                .endDate(request.endDate() != null ? encrypt(String.valueOf(request.endDate())) : null)
                 .user(user)
                 .build();
     }
@@ -74,10 +73,10 @@ public class SpendingService {
                 decrypt(spending.getName()),
                 Double.parseDouble(decrypt(spending.getAmount())),
                 decrypt(spending.getCategory()),
-                decryptToLocalDate(spending.getDate()),
+                spending.getDate() != null ? decryptToLocalDate(spending.getDate()) : null,
                 Boolean.parseBoolean(decrypt(spending.getIsRecurring())),
                 spending.getRecurrenceInterval(),
-                decryptToLocalDate(spending.getEndDate())
+                spending.getEndDate() != null ? decryptToLocalDate(spending.getEndDate()) : null
         );
     }
 
