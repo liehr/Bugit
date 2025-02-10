@@ -52,7 +52,7 @@ public class InvestmentService {
         return investmentRepository.findAllByUser(user)
                 .map(investments -> investments.stream()
                         .map(this::mapToResponse)
-                        .collect(Collectors.toList()))
+                        .toList())
                 .orElse(List.of());
     }
 
