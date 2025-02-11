@@ -1,7 +1,5 @@
 package de.tudl.playground.bugit.dtos.requests.spending;
 
-import de.tudl.playground.bugit.models.enums.RecurrenceInterval;
-
 import java.time.LocalDate;
 
 public record UpdateSpendingRequest(
@@ -11,7 +9,7 @@ public record UpdateSpendingRequest(
         String category,
         LocalDate date,
         boolean isRecurring,
-        RecurrenceInterval recurrenceInterval,
+        String recurrenceInterval,
         LocalDate endDate
 ) {
 }

@@ -7,8 +7,10 @@ import de.tudl.playground.bugit.dtos.responses.SpendingResponse;
 import de.tudl.playground.bugit.exception.UnauthorizedException;
 import de.tudl.playground.bugit.models.Spending;
 import de.tudl.playground.bugit.models.User;
+import de.tudl.playground.bugit.models.enums.RecurrenceInterval;
 import de.tudl.playground.bugit.repositories.SpendingRepository;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -24,6 +26,7 @@ import java.util.UUID;
  * form using an {@link EncryptionService}.
  * </p>
  */
+@Slf4j
 @Service
 public class SpendingService {
 
@@ -68,6 +71,8 @@ public class SpendingService {
      * @throws UnauthorizedException if the user is not authenticated.
      */
     public SpendingResponse updateSpending(UpdateSpendingRequest request) {
+        log.info("Updating spending: {}", request);
+
         return Optional.of(getAuthenticatedUser())
                 .map(user -> getSpendingByIdAndUser(request.spendingId(), user))
                 .map(spending -> {
@@ -169,9 +174,9 @@ public class SpendingService {
         spending.setName(encrypt(request.name()));
         spending.setAmount(encrypt(String.valueOf(request.amount())));
         spending.setCategory(encrypt(request.category()));
-        spending.setRecurrenceInterval(request.recurrenceInterval());
+        spending.setRecurrenceInterval(request.recurrenceInterval() != null ? RecurrenceInterval.valueOf(request.recurrenceInterval()) : null);
         spending.setDate(encrypt(String.valueOf(request.date())));
-        spending.setEndDate(encrypt(String.valueOf(request.endDate())));
+        spending.setEndDate(request.endDate() != null ? encrypt(String.valueOf(request.endDate())) : null);
         spending.setIsRecurring(encrypt(String.valueOf(request.isRecurring())));
     }
 

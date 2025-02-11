@@ -92,7 +92,7 @@ public class UserService {
             budget.setId(UUID.randomUUID());
             budget.setAmount(encryptionService.encrypt("5"));
             budget.setUser(user);
-            
+
             budgetRepository.save(budget);
 
             statusStore.setStatus(request.getRequestId(), "SUCCESS");
