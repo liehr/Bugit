@@ -32,6 +32,8 @@ public class Spending {
     @Column(nullable = false)
     private String isRecurring;
 
+    private String note;
+
     @Enumerated(EnumType.STRING)
     private RecurrenceInterval recurrenceInterval;
 

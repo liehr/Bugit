@@ -160,6 +160,7 @@ public class SpendingService {
                 .isRecurring(encrypt(String.valueOf(request.isRecurring())))
                 .recurrenceInterval(request.recurrenceInterval())
                 .endDate(request.endDate() != null ? encrypt(String.valueOf(request.endDate())) : null)
+                .note(request.note() != null ? encrypt(request.note()) : null)
                 .user(user)
                 .build();
     }
@@ -195,7 +196,8 @@ public class SpendingService {
                 spending.getDate() != null ? decryptToLocalDate(spending.getDate()) : null,
                 Boolean.parseBoolean(decrypt(spending.getIsRecurring())),
                 spending.getRecurrenceInterval(),
-                spending.getEndDate() != null ? decryptToLocalDate(spending.getEndDate()) : null
+                spending.getEndDate() != null ? decryptToLocalDate(spending.getEndDate()) : null,
+                spending.getNote() != null ? decrypt(spending.getNote()) : null
         );
     }
 

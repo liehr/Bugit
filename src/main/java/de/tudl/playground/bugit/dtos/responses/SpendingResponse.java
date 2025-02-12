@@ -31,4 +31,6 @@ public class SpendingResponse
 
     private LocalDate endDate;
 
+    private String note;
+
 }
