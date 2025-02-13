@@ -20,15 +20,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.header.writers.StaticHeadersWriter;
-
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
-
     private final JwtFilter jwtFilter;
 
     public SecurityConfig(UserDetailsService userDetailsService, JwtFilter jwtFilter) {
@@ -39,46 +36,52 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Remove this: .headers(header -> header.addHeaderWriter(new StaticHeadersWriter("Access-Control-Allow-Origin", "*")))
-                .exceptionHandling(c -> c.authenticationEntryPoint(
-                        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                // Setze hier keinen manuellen Header-Writer mehr ein, da CORS global konfiguriert wird
+                .exceptionHandling(c -> c
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                // Aktiviert CORS und greift auf deinen globalen CorsConfigurationSource zu
                 .cors(Customizer.withDefaults())
+                // Deaktiviert CSRF, da du stateless (z.B. JWT) arbeitest
                 .csrf(AbstractHttpConfigurer::disable)
+                // Setzt den Session-Management-Modus auf stateless
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorizeRequests -> authorizeRequests
+                .authorizeHttpRequests(authorize -> authorize
+                        // Erlaubt alle OPTIONS-Anfragen, damit der CORS-Preflight nicht blockiert wird
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Erlaubt explizit die Registrierungs- und Login-Endpunkte sowie den Status
                         .requestMatchers("/api/user/register", "/api/user/login", "/api/status/**").permitAll()
+                        // Alle weiteren Endpunkte müssen authentifiziert sein
                         .anyRequest().authenticated())
+                // Optional: Aktiviert HTTP Basic (nur wenn benötigt)
                 .httpBasic(Customizer.withDefaults())
+                // Fügt deinen JWT-Filter vor dem UsernamePasswordAuthenticationFilter ein
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-
     @Bean
-    public AuthenticationProvider authenticationProvider()
-    {
+    public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-
         provider.setPasswordEncoder(new BCryptPasswordEncoder(12));
         provider.setUserDetailsService(userDetailsService);
-
         return provider;
     }
 
     @SneakyThrows
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration)
-    {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) {
         return configuration.getAuthenticationManager();
     }
 
+    // Registriert deinen RequestThrottleFilter für alle API-Endpunkte.
+    // Da du im Filter selbst OPTIONS-Anfragen jetzt überspringst,
+    // wird der CORS-Preflight nicht blockiert.
     @Bean
     public FilterRegistrationBean<RequestThrottleFilter> requestThrottleFilter() {
         FilterRegistrationBean<RequestThrottleFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(new RequestThrottleFilter());
-        registrationBean.addUrlPatterns("/api/*"); // Schützt alle API-Endpunkte
+        registrationBean.addUrlPatterns("/api/*");
         return registrationBean;
     }
 
@@ -86,5 +89,4 @@ public class SecurityConfig {
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
-
 }

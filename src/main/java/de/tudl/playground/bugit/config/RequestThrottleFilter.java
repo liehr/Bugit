@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 public class RequestThrottleFilter implements Filter {
 
-    private static final long THRESHOLD_TIME_MS = TimeUnit.SECONDS.toMillis(20); // Zeitfenster (10s)
+    private static final long THRESHOLD_TIME_MS = TimeUnit.SECONDS.toMillis(20); // Zeitfenster (20s)
     private static final int MAX_REQUESTS = 20; // Maximale Anfragen pro IP
 
     private final ConcurrentHashMap<String, RequestInfo> requestCounts = new ConcurrentHashMap<>();
@@ -24,15 +24,21 @@ public class RequestThrottleFilter implements Filter {
             throws IOException, ServletException {
 
         if (request instanceof HttpServletRequest httpRequest && response instanceof HttpServletResponse httpResponse) {
-            String clientIp = httpRequest.getRemoteAddr();
 
+            // **OPTIONS-Anfragen überspringen, damit der CORS-Preflight nicht blockiert wird**
+            if ("OPTIONS".equalsIgnoreCase(httpRequest.getMethod())) {
+                chain.doFilter(request, response);
+                return;
+            }
+
+            String clientIp = httpRequest.getRemoteAddr();
             RequestInfo requestInfo = requestCounts.getOrDefault(clientIp, new RequestInfo(0, System.currentTimeMillis()));
 
             if (System.currentTimeMillis() - requestInfo.startTime > THRESHOLD_TIME_MS) {
-                // Reset the count after a time window
+                // Zählschaltung innerhalb des Zeitfensters zurücksetzen
                 requestInfo = new RequestInfo(1, System.currentTimeMillis());
             } else {
-                // Increment request count
+                // Anfragezahl erhöhen
                 requestInfo.count++;
             }
 
@@ -59,4 +65,3 @@ public class RequestThrottleFilter implements Filter {
         }
     }
 }
-
