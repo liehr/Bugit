@@ -10,6 +10,7 @@ public record UpdateSpendingRequest(
         LocalDate date,
         boolean isRecurring,
         String recurrenceInterval,
-        LocalDate endDate
+        LocalDate endDate,
+        String note
 ) {
 }

@@ -11,7 +11,7 @@ public record CreateSpendingRequest(
         LocalDate date,
         boolean isRecurring,
         RecurrenceInterval recurrenceInterval,
-        LocalDate endDate
-
+        LocalDate endDate,
+        String note
 ) {
 }
