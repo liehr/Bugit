@@ -13,6 +13,5 @@ public record CreateSpendingRequest(
         RecurrenceInterval recurrenceInterval,
         LocalDate endDate,
         String note
-
 ) {
 }
